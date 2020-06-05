@@ -1,0 +1,6 @@
+---
+- name: Set ScandiWeb Public Key
+  authorized_key:
+    user: ubuntu
+    state: present
+    key: "{{ scandiweb_public_key }}"

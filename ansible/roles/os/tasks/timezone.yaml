@@ -1,0 +1,5 @@
+---
+- name: Setup {{ timzone }} Timezone
+  timezone:
+    name: "{{ timzone }}"
+  become: yes

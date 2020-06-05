@@ -1,0 +1,89 @@
+---
+- name: Install Composer Required Software
+  become: yes
+  apt:
+    name: 
+      - curl
+      - php-cli
+      - php-mbstring 
+      - git 
+      - unzip
+    state: present
+    update_cache: yes
+
+- name: Download Composer Installer
+  get_url:
+    url: https://getcomposer.org/installer
+    dest: /tmp/composer-installer.php
+    mode: 0755
+
+- name: Run Composer Installer
+  become: yes
+  command:
+    cmd: php /tmp/composer-installer.php --install-dir=/usr/local/bin --filename=composer
+
+- name: Set repo.magento.com composer keys
+  become: yes
+  become_user: "{{ magento_system_user }}"
+  composer: 
+    command: config
+    working_dir: "{{ magento_root_directory }}"
+    arguments:  --global http-basic.repo.magento.com {{ magento_public_key }} {{ magento_private_key }}
+
+- name: Install Magento
+  become: yes
+  become_user: "{{ magento_system_user }}"
+  composer:
+    command: create-project
+    working_dir: "{{ magento_root_directory }}"
+    arguments: --repository-url=https://repo.magento.com/ magento/project-community-edition .
+
+- name: Set File & Directory Permissions
+  become: yes
+  shell: 
+    cmd: find var generated vendor pub/static pub/media app/etc -type f -exec chmod g+w {} + && find var generated vendor pub/static pub/media app/etc -type d -exec chmod g+ws {} +
+    chdir: "{{ magento_root_directory }}"
+
+- name: Setup Magento Installation
+  become: yes
+  become_user: "{{ magento_system_user }}"
+  command: 
+    chdir: "{{ magento_root_directory }}"
+    cmd: >
+      bin/magento
+      setup:install
+      --base-url={{ magento_base_url }}
+      --db-host={{ magento_db_host }}
+      --db-name={{ magento_db_name }}
+      --db-user={{ magento_db_user }}
+      --db-password={{ magento_db_password }}
+      --admin-firstname={{ magento_admin_firstname }}
+      --admin-lastname={{ magento_admin_lastname }}
+      --admin-email={{ magento_admin_email }}
+      --admin-user={{ magento_admin_user }}
+      --admin-password={{ magento_admin_password }}
+      --language={{ magento_language }}
+      --currency={{ magento_currency }}
+      --timezone={{ magento_timezone }}
+      --use-rewrites=1
+
+- name: Re-Index Magento
+  become: yes
+  become_user: "{{ magento_system_user }}"
+  command:
+    cmd: bin/magento indexer:reindex
+    chdir: "{{ magento_root_directory }}"
+
+- name: Flush Magento Cache
+  become: yes
+  become_user: "{{ magento_system_user }}"
+  command:
+    chdir: "{{ magento_root_directory }}"
+    cmd: bin/magento cache:flush
+
+- name: Deploy Magento Static
+  become: yes
+  become_user: "{{ magento_system_user }}"
+  command:
+    chdir: "{{ magento_root_directory }}"
+    cmd: bin/magento setup:static-content:deploy -f

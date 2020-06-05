@@ -1,0 +1,83 @@
+---
+# Create swap, because we use small AWS instance.
+- name: Create Space For Swap
+  become: yes
+  command:
+    cmd: /bin/dd if=/dev/zero of=/var/swap.1 bs=1M count=2048
+
+- name: Format Swap File
+  become: yes
+  command:
+    cmd: /sbin/mkswap /var/swap.1
+
+- name: Enable Swap
+  become: yes
+  command:
+    cmd: /sbin/swapon /var/swap.1
+
+- name: Create Magento User
+  become: yes
+  user:
+    name: "{{ magento_system_user }}"
+    group: "{{ magento_system_group }}"
+
+- name: Ensure Magento Directory Exists
+  become: yes
+  file: 
+    path: "{{ magento_root_directory }}"
+    state: directory
+    owner: "{{ magento_system_user }}"
+    group: "{{ magento_system_group }}"
+    recurse: yes
+
+- name: Install Required PHP Packages
+  become: yes
+  apt:
+    name:
+      - "{{ php_version }}"
+      - "{{ php_version }}-fpm"
+      - "{{ php_version }}-cli"
+      - "{{ php_version }}-bcmath"
+      - "{{ php_version }}-ctype"
+      - "{{ php_version }}-curl"
+      - "{{ php_version }}-dom"
+      - "{{ php_version }}-gd"
+      - "{{ php_version }}-iconv"
+      - "{{ php_version }}-intl"
+      - "{{ php_version }}-mbstring"
+      - "{{ php_version }}-mysql"
+      - "{{ php_version }}-simplexml"
+      - "{{ php_version }}-soap"
+      - "{{ php_version }}-zip"
+      - "{{ php_version }}-xml"
+      - "{{ php_version }}-xsl"
+    update_cache: yes
+    state: present
+
+- include: composer.yaml
+
+- name: Add Magento Nginx Config
+  become: yes
+  template:
+    src: magento
+    dest: /etc/nginx/sites-available/magento.conf
+    force: yes
+    owner: root
+    group: root
+    mode: 0644
+  notify: Restart Nginx
+
+- name: Disable Nginx Default Config
+  become: yes
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Restart Nginx
+
+- name: Register Nginx Magento Config
+  become: yes
+  file:
+    dest: /etc/nginx/sites-enabled/magento
+    src: /etc/nginx/sites-available/magento.conf
+    state: link
+  notify: Restart Nginx

@@ -1,0 +1,14 @@
+[application]
+10.0.1.174
+
+[varnish]
+10.0.1.140
+
+[database]
+10.0.1.174
+
+[webserver]
+10.0.1.174
+
+[bastion]
+10.0.101.40

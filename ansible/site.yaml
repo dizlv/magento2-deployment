@@ -1,0 +1,6 @@
+---
+- import_playbook: all.yaml
+- import_playbook: database.yaml
+- import_playbook: webserver.yaml
+- import_playbook: application.yaml
+- import_playbook: varnish.yaml

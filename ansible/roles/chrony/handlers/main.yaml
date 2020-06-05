@@ -1,0 +1,7 @@
+---
+- name: Chrony Restart
+  service:
+    name: chrony
+    state: started
+    enabled: yes
+  become: yes

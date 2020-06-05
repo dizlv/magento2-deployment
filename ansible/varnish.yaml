@@ -1,0 +1,5 @@
+---
+- hosts: varnish
+  become: yes
+  roles:
+    - geerlingguy.varnish
